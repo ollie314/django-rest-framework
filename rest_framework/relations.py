@@ -280,7 +280,7 @@ class HyperlinkedRelatedField(RelatedField):
         attributes are not configured to correctly match the URL conf.
         """
         # Unsaved objects will not yet have a valid URL.
-        if hasattr(obj, 'pk') and obj.pk is None:
+        if hasattr(obj, 'pk') and obj.pk in (None, ''):
             return None
 
         lookup_value = getattr(obj, self.lookup_field)
@@ -397,7 +397,6 @@ class SlugRelatedField(RelatedField):
     A read-write field that represents the target of the relationship
     by a unique 'slug' attribute.
     """
-
     default_error_messages = {
         'does_not_exist': _('Object with {slug_name}={value} does not exist.'),
         'invalid': _('Invalid value.'),

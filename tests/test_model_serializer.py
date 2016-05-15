@@ -10,18 +10,16 @@ from __future__ import unicode_literals
 import decimal
 from collections import OrderedDict
 
-import django
-import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.core.validators import (
     MaxValueValidator, MinLengthValidator, MinValueValidator
 )
 from django.db import models
+from django.db.models import DurationField as ModelDurationField
 from django.test import TestCase
 from django.utils import six
 
 from rest_framework import serializers
-from rest_framework.compat import DurationField as ModelDurationField
 from rest_framework.compat import unicode_repr
 
 
@@ -341,8 +339,6 @@ class TestRegularFieldMappings(TestCase):
         assert implicit.data == explicit.data
 
 
-@pytest.mark.skipif(django.VERSION < (1, 8),
-                    reason='DurationField is only available for django1.8+')
 class TestDurationFieldMapping(TestCase):
     def test_duration_field(self):
         class DurationFieldModel(models.Model):
@@ -788,7 +784,7 @@ class TestBulkCreate(TestCase):
         assert serializer.data == data
 
 
-class TestMetaClassModel(models.Model):
+class MetaClassTestModel(models.Model):
     text = models.CharField(max_length=100)
 
 
@@ -796,7 +792,7 @@ class TestSerializerMetaClass(TestCase):
     def test_meta_class_fields_option(self):
         class ExampleSerializer(serializers.ModelSerializer):
             class Meta:
-                model = TestMetaClassModel
+                model = MetaClassTestModel
                 fields = 'text'
 
         with self.assertRaises(TypeError) as result:
@@ -810,7 +806,7 @@ class TestSerializerMetaClass(TestCase):
     def test_meta_class_exclude_option(self):
         class ExampleSerializer(serializers.ModelSerializer):
             class Meta:
-                model = TestMetaClassModel
+                model = MetaClassTestModel
                 exclude = 'text'
 
         with self.assertRaises(TypeError) as result:
@@ -824,7 +820,7 @@ class TestSerializerMetaClass(TestCase):
     def test_meta_class_fields_and_exclude_options(self):
         class ExampleSerializer(serializers.ModelSerializer):
             class Meta:
-                model = TestMetaClassModel
+                model = MetaClassTestModel
                 fields = ('text',)
                 exclude = ('text',)
 

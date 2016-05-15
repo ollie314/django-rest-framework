@@ -3,6 +3,7 @@
 [![build-status-image]][travis]
 [![coverage-status-image]][codecov]
 [![pypi-version]][pypi]
+[![Gitter](https://badges.gitter.im/tomchristie/django-rest-framework.svg)](https://gitter.im/tomchristie/django-rest-framework?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 **Awesome web-browsable Web APIs.**
 
@@ -37,7 +38,7 @@ There is a live example API for testing purposes, [available here][sandbox].
 # Requirements
 
 * Python (2.7, 3.2, 3.3, 3.4, 3.5)
-* Django (1.7, 1.8, 1.9)
+* Django (1.8, 1.9)
 
 # Installation
 

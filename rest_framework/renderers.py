@@ -11,8 +11,8 @@ from __future__ import unicode_literals
 import json
 from collections import OrderedDict
 
-import django
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.paginator import Page
 from django.http.multipartparser import parse_header
@@ -41,7 +41,6 @@ class BaseRenderer(object):
     All renderers should extend this class, setting the `media_type`
     and `format` attributes, and override the `.render()` method.
     """
-
     media_type = None
     format = None
     charset = 'utf-8'
@@ -55,7 +54,6 @@ class JSONRenderer(BaseRenderer):
     """
     Renderer which serializes to JSON.
     """
-
     media_type = 'application/json'
     format = 'json'
     encoder_class = encoders.JSONEncoder
@@ -137,7 +135,6 @@ class TemplateHTMLRenderer(BaseRenderer):
 
     For pre-rendered HTML, see StaticHTMLRenderer.
     """
-
     media_type = 'text/html'
     format = 'html'
     template_name = None
@@ -661,7 +658,8 @@ class BrowsableAPIRenderer(BaseRenderer):
 
             'display_edit_forms': bool(response.status_code != 403),
 
-            'api_settings': api_settings
+            'api_settings': api_settings,
+            'csrf_cookie_name': settings.CSRF_COOKIE_NAME,
         }
         return context
 
@@ -773,7 +771,7 @@ class MultiPartRenderer(BaseRenderer):
     media_type = 'multipart/form-data; boundary=BoUnDaRyStRiNg'
     format = 'multipart'
     charset = 'utf-8'
-    BOUNDARY = 'BoUnDaRyStRiNg' if django.VERSION >= (1, 5) else b'BoUnDaRyStRiNg'
+    BOUNDARY = 'BoUnDaRyStRiNg'
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if hasattr(data, 'items'):

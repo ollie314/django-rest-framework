@@ -731,9 +731,17 @@ The `ListSerializer` class provides the behavior for serializing and validating 
 
 When a serializer is instantiated and `many=True` is passed, a `ListSerializer` instance will be created. The serializer class then becomes a child of the parent `ListSerializer`
 
+The following argument can also be passed to a `ListSerializer` field or a serializer that is passed `many=True`:
+
+### `allow_empty`
+
+This is `True` by default, but can be set to `False` if you want to disallow empty lists as valid input.
+
+### Customizing `ListSerializer` behavior
+
 There *are* a few use cases when you might want to customize the `ListSerializer` behavior. For example:
 
-* You want to provide particular validation of the lists, such as always ensuring that there is at least one element in a list.
+* You want to provide particular validation of the lists, such as checking that one element does not conflict with another element in a list.
 * You want to customize the create or update behavior of multiple objects.
 
 For these cases you can modify the class that is used when `many=True` is passed, by using the `list_serializer_class` option on the serializer `Meta` class.
@@ -788,7 +796,7 @@ Here's an example of how you might choose to implement multiple updates:
             # Perform creations and updates.
             ret = []
             for book_id, data in data_mapping.items():
-                book = book_mapping.get(book_id, None):
+                book = book_mapping.get(book_id, None)
                 if book is None:
                     ret.append(self.child.create(data))
                 else:
@@ -1076,6 +1084,13 @@ The [django-rest-framework-gis][django-rest-framework-gis] package provides a `G
 
 The [django-rest-framework-hstore][django-rest-framework-hstore] package provides an `HStoreSerializer` to support [django-hstore][django-hstore] `DictionaryField` model field and its `schema-mode` feature.
 
+## Dynamic REST
+
+The [dynamic-rest][dynamic-rest] package extends the ModelSerializer and ModelViewSet interfaces, adding API query parameters for filtering, sorting, and including / excluding all fields and relationships defined by your serializers.
+
+## HTML JSON Forms
+The [html-json-forms][html-json-forms] package provides an algorithm and serializer for processing `<form>` submissions per the (inactive) [HTML JSON Form specification][json-form-spec].  The serializer facilitates processing of arbitrarily nested JSON structures within HTML.  For example, `<input name="items[0][id]" value="5">` will be interpreted as `{"items": [{"id": "5"}]}`.
+
 [cite]: https://groups.google.com/d/topic/django-users/sVFaOfQi4wY/discussion
 [relations]: relations.md
 [model-managers]: https://docs.djangoproject.com/en/dev/topics/db/managers/
@@ -1087,3 +1102,6 @@ The [django-rest-framework-hstore][django-rest-framework-hstore] package provide
 [django-rest-framework-gis]: https://github.com/djangonauts/django-rest-framework-gis
 [django-rest-framework-hstore]: https://github.com/djangonauts/django-rest-framework-hstore
 [django-hstore]: https://github.com/djangonauts/django-hstore
+[dynamic-rest]: https://github.com/AltSchool/dynamic-rest
+[html-json-forms]: https://github.com/wq/html-json-forms
+[json-form-spec]: https://www.w3.org/TR/html-json-forms/

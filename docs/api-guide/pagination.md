@@ -54,7 +54,7 @@ Or apply the style globally, using the `DEFAULT_PAGINATION_CLASS` settings key. 
 
     REST_FRAMEWORK = {
         'DEFAULT_PAGINATION_CLASS': 'apps.core.pagination.StandardResultsSetPagination'
-        }
+    }
 
 ---
 
@@ -317,4 +317,4 @@ The [`DRF-extensions` package][drf-extensions] includes a [`PaginateByMaxMixin` 
 [link-header]: ../img/link-header-pagination.png
 [drf-extensions]: http://chibisov.github.io/drf-extensions/docs/
 [paginate-by-max-mixin]: http://chibisov.github.io/drf-extensions/docs/#paginatebymaxmixin
-[disqus-cursor-api]: http://cramer.io/2011/03/08/building-cursors-for-the-disqus-api/
+[disqus-cursor-api]: http://cramer.io/2011/03/08/building-cursors-for-the-disqus-api

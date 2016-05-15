@@ -15,12 +15,12 @@ from __future__ import unicode_literals
 import warnings
 
 from django.db import models
+from django.db.models import DurationField as ModelDurationField
 from django.db.models.fields import Field as DjangoModelField
 from django.db.models.fields import FieldDoesNotExist
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
-from rest_framework.compat import DurationField as ModelDurationField
 from rest_framework.compat import JSONField as ModelJSONField
 from rest_framework.compat import postgres_fields, unicode_to_repr
 from rest_framework.utils import model_meta
@@ -464,9 +464,13 @@ class Serializer(BaseSerializer):
             except SkipField:
                 continue
 
-            if attribute is None:
-                # We skip `to_representation` for `None` values so that
-                # fields do not have to explicitly deal with that case.
+            # We skip `to_representation` for `None` values so that fields do
+            # not have to explicitly deal with that case.
+            #
+            # For related fields with `use_pk_only_optimization` we need to
+            # resolve the pk value.
+            check_for_none = attribute.pk if isinstance(attribute, PKOnlyObject) else attribute
+            if check_for_none is None:
                 ret[field.field_name] = None
             else:
                 ret[field.field_name] = field.to_representation(attribute)

@@ -42,9 +42,22 @@ Some reasons you might want to use REST framework:
 
 ---
 
-![Screenshot][image]
+We are a [collaboratively funded project](https://fund.django-rest-framework.org/topics/funding/).
+Many thanks to our sponsors for ensuring we can continue to develop, support and improve Django REST framework.
 
-**Above**: *Screenshot from the browsable API*
+<a href="https://www.rover.com/" rel="nofollow" style="background-image:url(./img/rover.png);
+display:block;
+    width: 300px;
+    height: 0px;
+    text-align: center;
+    margin: 10px auto 30px;
+    padding: 300px 0 0 0;
+    background-position: 0 50%;
+    background-size: 280px auto;
+    background-repeat: no-repeat;
+    font-size: 150%;">Rover.com</a>
+
+---
 
 ## Requirements
 
@@ -204,6 +217,8 @@ General guides to using REST framework.
 * [3.2 Announcement][3.2-announcement]
 * [3.3 Announcement][3.3-announcement]
 * [Kickstarter Announcement][kickstarter-announcement]
+* [Mozilla Grant][mozilla-grant]
+* [Funding][funding]
 * [Release Notes][release-notes]
 
 ## Development
@@ -320,6 +335,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 [3.2-announcement]: topics/3.2-announcement.md
 [3.3-announcement]: topics/3.3-announcement.md
 [kickstarter-announcement]: topics/kickstarter-announcement.md
+[mozilla-grant]: topics/mozilla-grant.md
 [funding]: topics/funding.md
 [release-notes]: topics/release-notes.md
 

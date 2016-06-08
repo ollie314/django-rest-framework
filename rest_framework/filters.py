@@ -222,21 +222,40 @@ class OrderingFilter(BaseFilterBackend):
             return (ordering,)
         return ordering
 
+    def get_default_valid_fields(self, queryset, view):
+        # If `ordering_fields` is not specified, then we determine a default
+        # based on the serializer class, if one exists on the view.
+        if hasattr(view, 'get_serializer_class'):
+            try:
+                serializer_class = view.get_serializer_class()
+            except AssertionError:
+                # Raised by the default implementation if
+                # no serializer_class was found
+                serializer_class = None
+        else:
+            serializer_class = getattr(view, 'serializer_class', None)
+
+        if serializer_class is None:
+            msg = (
+                "Cannot use %s on a view which does not have either a "
+                "'serializer_class', an overriding 'get_serializer_class' "
+                "or 'ordering_fields' attribute."
+            )
+            raise ImproperlyConfigured(msg % self.__class__.__name__)
+
+        return [
+            (field.source or field_name, field.label)
+            for field_name, field in serializer_class().fields.items()
+            if not getattr(field, 'write_only', False) and not field.source == '*'
+        ]
+
     def get_valid_fields(self, queryset, view):
         valid_fields = getattr(view, 'ordering_fields', self.ordering_fields)
 
         if valid_fields is None:
             # Default to allowing filtering on serializer fields
-            serializer_class = getattr(view, 'serializer_class')
-            if serializer_class is None:
-                msg = ("Cannot use %s on a view which does not have either a "
-                       "'serializer_class' or 'ordering_fields' attribute.")
-                raise ImproperlyConfigured(msg % self.__class__.__name__)
-            valid_fields = [
-                (field.source or field_name, field.label)
-                for field_name, field in serializer_class().fields.items()
-                if not getattr(field, 'write_only', False) and not field.source == '*'
-            ]
+            return self.get_default_valid_fields(queryset, view)
+
         elif valid_fields == '__all__':
             # View explicitly allows filtering on any model field
             valid_fields = [
@@ -305,7 +324,7 @@ class DjangoObjectPermissionsFilter(BaseFilterBackend):
             'model_name': model_cls._meta.model_name
         }
         permission = self.perm_format % kwargs
-        if guardian.VERSION >= (1, 3):
+        if tuple(guardian.VERSION) >= (1, 3):
             # Maintain behavior compatibility with versions prior to 1.3
             extra = {'accept_global_perms': False}
         else:

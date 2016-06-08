@@ -452,7 +452,7 @@ To do so, open the Django shell, using `python manage.py shell`, then import the
 
     >>> from myapp.serializers import AccountSerializer
     >>> serializer = AccountSerializer()
-    >>> print repr(serializer)  # Or `print(repr(serializer))` in Python 3.x.
+    >>> print(repr(serializer))
     AccountSerializer():
         id = IntegerField(label='ID', read_only=True)
         name = CharField(allow_blank=True, max_length=100, required=False)
@@ -677,6 +677,25 @@ You can explicitly include the primary key by adding it to the `fields` option, 
         class Meta:
             model = Account
             fields = ('url', 'id', 'account_name', 'users', 'created')
+
+## Absolute and relative URLs
+
+When instantiating a `HyperlinkedModelSerializer` you must include the current
+`request` in the serializer context, for example:
+
+    serializer = AccountSerializer(queryset, context={'request': request})
+
+Doing so will ensure that the hyperlinks can include an appropriate hostname,
+so that the resulting representation uses fully qualified URLs, such as:
+
+    http://api.example.com/accounts/1/
+
+Rather than relative URLs, such as:
+
+    /accounts/1/
+
+If you *do* want to use relative URLs, you should explicitly pass `{'request': None}`
+in the serializer context.
 
 ## How hyperlinked views are determined
 
@@ -1096,7 +1115,7 @@ The [html-json-forms][html-json-forms] package provides an algorithm and seriali
 [model-managers]: https://docs.djangoproject.com/en/dev/topics/db/managers/
 [encapsulation-blogpost]: http://www.dabapps.com/blog/django-models-and-encapsulation/
 [django-rest-marshmallow]: http://tomchristie.github.io/django-rest-marshmallow/
-[marshmallow]: https://marshmallow.readthedocs.org/en/latest/
+[marshmallow]: https://marshmallow.readthedocs.io/en/latest/
 [serpy]: https://github.com/clarkduvall/serpy
 [mongoengine]: https://github.com/umutbozkurt/django-rest-framework-mongoengine
 [django-rest-framework-gis]: https://github.com/djangonauts/django-rest-framework-gis

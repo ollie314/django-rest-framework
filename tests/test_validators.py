@@ -4,6 +4,7 @@ from django.db import models
 from django.test import TestCase
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 
 def dedent(blocktext):
@@ -20,6 +21,21 @@ class UniquenessModel(models.Model):
 class UniquenessSerializer(serializers.ModelSerializer):
     class Meta:
         model = UniquenessModel
+        fields = '__all__'
+
+
+class RelatedModel(models.Model):
+    user = models.OneToOneField(UniquenessModel, on_delete=models.CASCADE)
+    email = models.CharField(unique=True, max_length=80)
+
+
+class RelatedModelSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username',
+        validators=[UniqueValidator(queryset=UniquenessModel.objects.all())])  # NOQA
+
+    class Meta:
+        model = RelatedModel
+        fields = ('username', 'email')
 
 
 class AnotherUniquenessModel(models.Model):
@@ -29,6 +45,7 @@ class AnotherUniquenessModel(models.Model):
 class AnotherUniquenessSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnotherUniquenessModel
+        fields = '__all__'
 
 
 class TestUniquenessValidation(TestCase):
@@ -73,6 +90,16 @@ class TestUniquenessValidation(TestCase):
         self.assertEqual(
             AnotherUniquenessModel._meta.get_field('code').validators, [])
 
+    def test_related_model_is_unique(self):
+        data = {'username': 'existing', 'email': 'new-email@example.com'}
+        rs = RelatedModelSerializer(data=data)
+        self.assertFalse(rs.is_valid())
+        self.assertEqual(rs.errors,
+                         {'username': ['This field must be unique.']})
+        data = {'username': 'new-username', 'email': 'new-email@example.com'}
+        rs = RelatedModelSerializer(data=data)
+        self.assertTrue(rs.is_valid())
+
 
 # Tests for `UniqueTogetherValidator`
 # -----------------------------------
@@ -109,11 +136,13 @@ class NullUniquenessTogetherModel(models.Model):
 class UniquenessTogetherSerializer(serializers.ModelSerializer):
     class Meta:
         model = UniquenessTogetherModel
+        fields = '__all__'
 
 
 class NullUniquenessTogetherSerializer(serializers.ModelSerializer):
     class Meta:
         model = NullUniquenessTogetherModel
+        fields = '__all__'
 
 
 class TestUniquenessTogetherValidation(TestCase):
@@ -250,6 +279,7 @@ class UniqueForDateModel(models.Model):
 class UniqueForDateSerializer(serializers.ModelSerializer):
     class Meta:
         model = UniqueForDateModel
+        fields = '__all__'
 
 
 class TestUniquenessForDateValidation(TestCase):

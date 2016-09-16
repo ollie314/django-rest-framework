@@ -64,10 +64,10 @@ def _get_displayed_page_numbers(current, final):
 
     This implementation gives one page to each side of the cursor,
     or two pages to the side when the cursor is at the edge, then
-    ensures that any breaks between non-continous page numbers never
+    ensures that any breaks between non-continuous page numbers never
     remove only a single page.
 
-    For an alernativative implementation which gives two pages to each side of
+    For an alternative implementation which gives two pages to each side of
     the cursor, eg. as in GitHub issue list pagination, see:
 
     https://gist.github.com/tomchristie/321140cebb1c4a558b15
@@ -156,6 +156,9 @@ class BasePagination(object):
 
     def get_results(self, data):
         return data['results']
+
+    def get_fields(self, view):
+        return []
 
 
 class PageNumberPagination(BasePagination):
@@ -280,6 +283,11 @@ class PageNumberPagination(BasePagination):
         context = self.get_html_context()
         return template_render(template, context)
 
+    def get_fields(self, view):
+        if self.page_size_query_param is None:
+            return [self.page_query_param]
+        return [self.page_query_param, self.page_size_query_param]
+
 
 class LimitOffsetPagination(BasePagination):
     """
@@ -304,6 +312,9 @@ class LimitOffsetPagination(BasePagination):
         self.request = request
         if self.count > self.limit and self.template is not None:
             self.display_page_controls = True
+
+        if self.count == 0 or self.offset > self.count:
+            return []
         return list(queryset[self.offset:self.offset + self.limit])
 
     def get_paginated_response(self, data):
@@ -319,6 +330,7 @@ class LimitOffsetPagination(BasePagination):
             try:
                 return _positive_int(
                     request.query_params[self.limit_query_param],
+                    strict=True,
                     cutoff=self.max_limit
                 )
             except (KeyError, ValueError):
@@ -403,10 +415,13 @@ class LimitOffsetPagination(BasePagination):
         context = self.get_html_context()
         return template_render(template, context)
 
+    def get_fields(self, view):
+        return [self.limit_query_param, self.offset_query_param]
+
 
 class CursorPagination(BasePagination):
     """
-    The cursor pagination implementation is neccessarily complex.
+    The cursor pagination implementation is necessarily complex.
     For an overview of the position/offset style we use, see this post:
     http://cramer.io/2011/03/08/building-cursors-for-the-disqus-api
     """
@@ -415,6 +430,12 @@ class CursorPagination(BasePagination):
     invalid_cursor_message = _('Invalid cursor')
     ordering = '-created'
     template = 'rest_framework/pagination/previous_and_next.html'
+
+    # The offset in the cursor is used in situations where we have a
+    # nearly-unique index. (Eg millisecond precision creation timestamps)
+    # We guard against malicious users attempting to cause expensive database
+    # queries, by having a hard cap on the maximum possible size of the offset.
+    offset_cutoff = 1000
 
     def paginate_queryset(self, queryset, request, view=None):
         self.page_size = self.get_page_size(request)
@@ -458,10 +479,10 @@ class CursorPagination(BasePagination):
 
         # Determine the position of the final item following the page.
         if len(results) > len(self.page):
-            has_following_postion = True
+            has_following_position = True
             following_position = self._get_position_from_instance(results[-1], self.ordering)
         else:
-            has_following_postion = False
+            has_following_position = False
             following_position = None
 
         # If we have a reverse queryset, then the query ordering was in reverse
@@ -472,14 +493,14 @@ class CursorPagination(BasePagination):
         if reverse:
             # Determine next and previous positions for reverse cursors.
             self.has_next = (current_position is not None) or (offset > 0)
-            self.has_previous = has_following_postion
+            self.has_previous = has_following_position
             if self.has_next:
                 self.next_position = current_position
             if self.has_previous:
                 self.previous_position = following_position
         else:
             # Determine next and previous positions for forward cursors.
-            self.has_next = has_following_postion
+            self.has_next = has_following_position
             self.has_previous = (current_position is not None) or (offset > 0)
             if self.has_next:
                 self.next_position = following_position
@@ -516,7 +537,7 @@ class CursorPagination(BasePagination):
                 # our marker.
                 break
 
-            # The item in this postion has the same position as the item
+            # The item in this position has the same position as the item
             # following it, we can't use it as a marker position, so increment
             # the offset and keep seeking to the previous item.
             compare = position
@@ -564,7 +585,7 @@ class CursorPagination(BasePagination):
                 # our marker.
                 break
 
-            # The item in this postion has the same position as the item
+            # The item in this position has the same position as the item
             # following it, we can't use it as a marker position, so increment
             # the offset and keep seeking to the previous item.
             compare = position
@@ -646,18 +667,12 @@ class CursorPagination(BasePagination):
         if encoded is None:
             return None
 
-        # The offset in the cursor is used in situations where we have a
-        # nearly-unique index. (Eg millisecond precision creation timestamps)
-        # We guard against malicious users attempting to cause expensive database
-        # queries, by having a hard cap on the maximum possible size of the offset.
-        OFFSET_CUTOFF = 1000
-
         try:
             querystring = b64decode(encoded.encode('ascii')).decode('ascii')
             tokens = urlparse.parse_qs(querystring, keep_blank_values=True)
 
             offset = tokens.get('o', ['0'])[0]
-            offset = _positive_int(offset, cutoff=OFFSET_CUTOFF)
+            offset = _positive_int(offset, cutoff=self.offset_cutoff)
 
             reverse = tokens.get('r', ['0'])[0]
             reverse = bool(int(reverse))
@@ -705,3 +720,6 @@ class CursorPagination(BasePagination):
         template = loader.get_template(self.template)
         context = self.get_html_context()
         return template_render(template, context)
+
+    def get_fields(self, view):
+        return [self.cursor_query_param]

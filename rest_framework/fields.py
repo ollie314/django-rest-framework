@@ -25,6 +25,7 @@ from django.utils.dateparse import (
 )
 from django.utils.duration import duration_string
 from django.utils.encoding import is_protected_type, smart_text
+from django.utils.formats import localize_input, sanitize_separators
 from django.utils.functional import cached_property
 from django.utils.ipv6 import clean_ipv6_address
 from django.utils.translation import ugettext_lazy as _
@@ -251,6 +252,8 @@ class SkipField(Exception):
     pass
 
 
+REGEX_TYPE = type(re.compile(''))
+
 NOT_READ_ONLY_WRITE_ONLY = 'May not set both `read_only` and `write_only`'
 NOT_READ_ONLY_REQUIRED = 'May not set both `read_only` and `required`'
 NOT_REQUIRED_DEFAULT = 'May not set both `required` and `default`'
@@ -394,8 +397,8 @@ class Field(object):
                 # determine if we should use null instead.
                 return '' if getattr(self, 'allow_blank', False) else None
             elif ret == '' and not self.required:
-                # If the field is blank, and emptyness is valid then
-                # determine if we should use emptyness instead.
+                # If the field is blank, and emptiness is valid then
+                # determine if we should use emptiness instead.
                 return '' if getattr(self, 'allow_blank', False) else empty
             return ret
         return dictionary.get(self.field_name, empty)
@@ -431,10 +434,11 @@ class Field(object):
         is provided for this field.
 
         If a default has not been set for this field then this will simply
-        return `empty`, indicating that no value should be set in the
+        raise `SkipField`, indicating that no value should be set in the
         validated data for this field.
         """
-        if self.default is empty:
+        if self.default is empty or getattr(self.root, 'partial', False):
+            # No default, or this is a partial update.
             raise SkipField()
         if callable(self.default):
             if hasattr(self.default, 'set_context'):
@@ -579,16 +583,17 @@ class Field(object):
         When cloning fields we instantiate using the arguments it was
         originally created with, rather than copying the complete state.
         """
-        args = copy.deepcopy(self._args)
-        kwargs = dict(self._kwargs)
-        # Bit ugly, but we need to special case 'validators' as Django's
-        # RegexValidator does not support deepcopy.
-        # We treat validator callables as immutable objects.
+        # Treat regexes and validators as immutable.
         # See https://github.com/tomchristie/django-rest-framework/issues/1954
-        validators = kwargs.pop('validators', None)
-        kwargs = copy.deepcopy(kwargs)
-        if validators is not None:
-            kwargs['validators'] = validators
+        # and https://github.com/tomchristie/django-rest-framework/pull/4489
+        args = [
+            copy.deepcopy(item) if not isinstance(item, REGEX_TYPE) else item
+            for item in self._args
+        ]
+        kwargs = {
+            key: (copy.deepcopy(value) if (key not in ('validators', 'regex')) else value)
+            for key, value in self._kwargs.items()
+        }
         return self.__class__(*args, **kwargs)
 
     def __repr__(self):
@@ -670,6 +675,7 @@ class NullBooleanField(Field):
 
 class CharField(Field):
     default_error_messages = {
+        'invalid': _('Not a valid string.'),
         'blank': _('This field may not be blank.'),
         'max_length': _('Ensure this field has no more than {max_length} characters.'),
         'min_length': _('Ensure this field has at least {min_length} characters.')
@@ -700,6 +706,11 @@ class CharField(Field):
         return super(CharField, self).run_validation(data)
 
     def to_internal_value(self, data):
+        # We're lenient with allowing basic numerics to be coerced into strings,
+        # but other types should fail. Eg. unclear if booleans should represent as `true` or `True`,
+        # and composites such as lists are likely user error.
+        if isinstance(data, bool) or not isinstance(data, six.string_types + six.integer_types + (float,)):
+            self.fail('invalid')
         value = six.text_type(data)
         return value.strip() if self.trim_whitespace else value
 
@@ -803,7 +814,10 @@ class IPAddressField(CharField):
         self.validators.extend(validators)
 
     def to_internal_value(self, data):
-        if data and ':' in data:
+        if not isinstance(data, six.string_types):
+            self.fail('invalid', value=data)
+
+        if ':' in data:
             try:
                 if self.protocol in ('both', 'ipv6'):
                     return clean_ipv6_address(data, self.unpack_ipv4)
@@ -871,6 +885,7 @@ class FloatField(Field):
             self.validators.append(MinValueValidator(self.min_value, message=message))
 
     def to_internal_value(self, data):
+
         if isinstance(data, six.text_type) and len(data) > self.MAX_STRING_LENGTH:
             self.fail('max_string_length')
 
@@ -895,11 +910,15 @@ class DecimalField(Field):
     }
     MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
 
-    def __init__(self, max_digits, decimal_places, coerce_to_string=None, max_value=None, min_value=None, **kwargs):
+    def __init__(self, max_digits, decimal_places, coerce_to_string=None, max_value=None, min_value=None,
+                 localize=False, **kwargs):
         self.max_digits = max_digits
         self.decimal_places = decimal_places
+        self.localize = localize
         if coerce_to_string is not None:
             self.coerce_to_string = coerce_to_string
+        if self.localize:
+            self.coerce_to_string = True
 
         self.max_value = max_value
         self.min_value = min_value
@@ -923,7 +942,12 @@ class DecimalField(Field):
         Validate that the input is a decimal number and return a Decimal
         instance.
         """
+
         data = smart_text(data).strip()
+
+        if self.localize:
+            data = sanitize_separators(data)
+
         if len(data) > self.MAX_STRING_LENGTH:
             self.fail('max_string_length')
 
@@ -941,7 +965,7 @@ class DecimalField(Field):
         if value in (decimal.Decimal('Inf'), decimal.Decimal('-Inf')):
             self.fail('invalid')
 
-        return self.validate_precision(value)
+        return self.quantize(self.validate_precision(value))
 
     def validate_precision(self, value):
         """
@@ -988,6 +1012,9 @@ class DecimalField(Field):
 
         if not coerce_to_string:
             return quantized
+        if self.localize:
+            return localize_input(quantized)
+
         return '{0:f}'.format(quantized)
 
     def quantize(self, value):
@@ -998,10 +1025,12 @@ class DecimalField(Field):
             return value
 
         context = decimal.getcontext().copy()
-        context.prec = self.max_digits
+        if self.max_digits is not None:
+            context.prec = self.max_digits
         return value.quantize(
             decimal.Decimal('.1') ** self.decimal_places,
-            context=context)
+            context=context
+        )
 
 
 # Date & time fields...
@@ -1073,7 +1102,7 @@ class DateTimeField(Field):
 
         output_format = getattr(self, 'format', api_settings.DATETIME_FORMAT)
 
-        if output_format is None:
+        if output_format is None or isinstance(value, six.string_types):
             return value
 
         if output_format.lower() == ISO_8601:
@@ -1133,7 +1162,7 @@ class DateField(Field):
 
         output_format = getattr(self, 'format', api_settings.DATE_FORMAT)
 
-        if output_format is None:
+        if output_format is None or isinstance(value, six.string_types):
             return value
 
         # Applying a `DateField` to a datetime value is almost always
@@ -1146,8 +1175,6 @@ class DateField(Field):
         )
 
         if output_format.lower() == ISO_8601:
-            if isinstance(value, six.string_types):
-                value = datetime.datetime.strptime(value, '%Y-%m-%d').date()
             return value.isoformat()
 
         return value.strftime(output_format)
@@ -1198,7 +1225,7 @@ class TimeField(Field):
 
         output_format = getattr(self, 'format', api_settings.TIME_FORMAT)
 
-        if output_format is None:
+        if output_format is None or isinstance(value, six.string_types):
             return value
 
         # Applying a `TimeField` to a datetime value is almost always
@@ -1211,8 +1238,6 @@ class TimeField(Field):
         )
 
         if output_format.lower() == ISO_8601:
-            if isinstance(value, six.string_types):
-                value = datetime.datetime.strptime(value, '%H:%M:%S').time()
             return value.isoformat()
         return value.strftime(output_format)
 
@@ -1331,7 +1356,7 @@ class FilePathField(ChoiceField):
 
     def __init__(self, path, match=None, recursive=False, allow_files=True,
                  allow_folders=False, required=None, **kwargs):
-        # Defer to Django's FilePathField implmentation to get the
+        # Defer to Django's FilePathField implementation to get the
         # valid set of choices.
         field = DjangoFilePathField(
             path, match=match, recursive=recursive, allow_files=allow_files,
@@ -1634,7 +1659,7 @@ class SerializerMethodField(Field):
     def bind(self, field_name, parent):
         # In order to enforce a consistent style, we error if a redundant
         # 'method_name' argument has been used. For example:
-        # my_field = serializer.CharField(source='my_field')
+        # my_field = serializer.SerializerMethodField(method_name='get_my_field')
         default_method_name = 'get_{field_name}'.format(field_name=field_name)
         assert self.method_name != default_method_name, (
             "It is redundant to specify `%s` on SerializerMethodField '%s' in "

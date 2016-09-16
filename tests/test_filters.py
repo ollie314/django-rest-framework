@@ -37,9 +37,9 @@ if django_filters:
 
     # These class are used to test a filter class.
     class SeveralFieldsFilter(django_filters.FilterSet):
-        text = django_filters.CharFilter(lookup_type='icontains')
-        decimal = django_filters.NumberFilter(lookup_type='lt')
-        date = django_filters.DateFilter(lookup_type='gt')
+        text = django_filters.CharFilter(lookup_expr='icontains')
+        decimal = django_filters.NumberFilter(lookup_expr='lt')
+        date = django_filters.DateFilter(lookup_expr='gt')
 
         class Meta:
             model = FilterableItem
@@ -53,7 +53,7 @@ if django_filters:
 
     # These classes are used to test a misconfigured filter class.
     class MisconfiguredFilter(django_filters.FilterSet):
-        text = django_filters.CharFilter(lookup_type='icontains')
+        text = django_filters.CharFilter(lookup_expr='icontains')
 
         class Meta:
             model = BasicModel
@@ -454,6 +454,47 @@ class AttributeModel(models.Model):
     label = models.CharField(max_length=32)
 
 
+class SearchFilterModelFk(models.Model):
+    title = models.CharField(max_length=20)
+    attribute = models.ForeignKey(AttributeModel)
+
+
+class SearchFilterFkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SearchFilterModelFk
+        fields = '__all__'
+
+
+class SearchFilterFkTests(TestCase):
+
+    def test_must_call_distinct(self):
+        filter_ = filters.SearchFilter()
+        prefixes = [''] + list(filter_.lookup_prefixes)
+        for prefix in prefixes:
+            self.assertFalse(
+                filter_.must_call_distinct(
+                    SearchFilterModelFk._meta, ["%stitle" % prefix]
+                )
+            )
+            self.assertFalse(
+                filter_.must_call_distinct(
+                    SearchFilterModelFk._meta, ["%stitle" % prefix, "%sattribute__label" % prefix]
+                )
+            )
+
+    def test_must_call_distinct_restores_meta_for_each_field(self):
+        # In this test case the attribute of the fk model comes first in the
+        # list of search fields.
+        filter_ = filters.SearchFilter()
+        prefixes = [''] + list(filter_.lookup_prefixes)
+        for prefix in prefixes:
+            self.assertFalse(
+                filter_.must_call_distinct(
+                    SearchFilterModelFk._meta, ["%sattribute__label" % prefix, "%stitle" % prefix]
+                )
+            )
+
+
 class SearchFilterModelM2M(models.Model):
     title = models.CharField(max_length=20)
     text = models.CharField(max_length=100)
@@ -499,6 +540,21 @@ class SearchFilterM2MTests(TestCase):
         request = factory.get('/', {'search': 'zz'})
         response = view(request)
         self.assertEqual(len(response.data), 1)
+
+    def test_must_call_distinct(self):
+        filter_ = filters.SearchFilter()
+        prefixes = [''] + list(filter_.lookup_prefixes)
+        for prefix in prefixes:
+            self.assertFalse(
+                filter_.must_call_distinct(
+                    SearchFilterModelM2M._meta, ["%stitle" % prefix]
+                )
+            )
+            self.assertTrue(
+                filter_.must_call_distinct(
+                    SearchFilterModelM2M._meta, ["%stitle" % prefix, "%sattributes__label" % prefix]
+                )
+            )
 
 
 class OrderingFilterModel(models.Model):
@@ -655,7 +711,7 @@ class OrderingFilterTests(TestCase):
             serializer_class = OrderingFilterSerializer
             filter_backends = (filters.OrderingFilter,)
             ordering = ('title',)
-            oredering_fields = ('text',)
+            ordering_fields = ('text',)
 
         view = OrderingListView.as_view()
         request = factory.get('')
@@ -763,7 +819,7 @@ class OrderingFilterTests(TestCase):
             queryset = OrderingFilterModel.objects.all()
             filter_backends = (filters.OrderingFilter,)
             ordering = ('title',)
-            # note: no ordering_fields and serializer_class speficied
+            # note: no ordering_fields and serializer_class specified
 
             def get_serializer_class(self):
                 return OrderingFilterSerializer
@@ -786,7 +842,7 @@ class OrderingFilterTests(TestCase):
             filter_backends = (filters.OrderingFilter,)
             ordering = ('title',)
             # note: no ordering_fields and serializer_class
-            # or get_serializer_class speficied
+            # or get_serializer_class specified
 
         view = OrderingListView.as_view()
         request = factory.get('/', {'ordering': 'text'})

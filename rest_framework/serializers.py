@@ -12,6 +12,7 @@ response content is handled by parsers and renderers.
 """
 from __future__ import unicode_literals
 
+import traceback
 import warnings
 
 from django.db import models
@@ -667,6 +668,28 @@ class ListSerializer(BaseSerializer):
 
         return self.instance
 
+    def is_valid(self, raise_exception=False):
+        # This implementation is the same as the default,
+        # except that we use lists, rather than dicts, as the empty case.
+        assert hasattr(self, 'initial_data'), (
+            'Cannot call `.is_valid()` as no `data=` keyword argument was '
+            'passed when instantiating the serializer instance.'
+        )
+
+        if not hasattr(self, '_validated_data'):
+            try:
+                self._validated_data = self.run_validation(self.initial_data)
+            except ValidationError as exc:
+                self._validated_data = []
+                self._errors = exc.detail
+            else:
+                self._errors = []
+
+        if self._errors and raise_exception:
+            raise ValidationError(self.errors)
+
+        return not bool(self._errors)
+
     def __repr__(self):
         return unicode_to_repr(representation.list_repr(self, indent=1))
 
@@ -848,19 +871,20 @@ class ModelSerializer(Serializer):
 
         try:
             instance = ModelClass.objects.create(**validated_data)
-        except TypeError as exc:
+        except TypeError:
+            tb = traceback.format_exc()
             msg = (
                 'Got a `TypeError` when calling `%s.objects.create()`. '
                 'This may be because you have a writable field on the '
                 'serializer class that is not a valid argument to '
                 '`%s.objects.create()`. You may need to make the field '
                 'read-only, or override the %s.create() method to handle '
-                'this correctly.\nOriginal exception text was: %s.' %
+                'this correctly.\nOriginal exception was:\n %s' %
                 (
                     ModelClass.__name__,
                     ModelClass.__name__,
                     self.__class__.__name__,
-                    exc
+                    tb
                 )
             )
             raise TypeError(msg)
@@ -991,12 +1015,12 @@ class ModelSerializer(Serializer):
         if fields is None and exclude is None:
             warnings.warn(
                 "Creating a ModelSerializer without either the 'fields' "
-                "attribute or the 'exclude' attribute is pending deprecation "
+                "attribute or the 'exclude' attribute is deprecated "
                 "since 3.3.0. Add an explicit fields = '__all__' to the "
                 "{serializer_class} serializer.".format(
                     serializer_class=self.__class__.__name__
                 ),
-                PendingDeprecationWarning
+                DeprecationWarning
             )
 
         if fields == ALL_FIELDS:
@@ -1221,6 +1245,11 @@ class ModelSerializer(Serializer):
 
         read_only_fields = getattr(self.Meta, 'read_only_fields', None)
         if read_only_fields is not None:
+            if not isinstance(read_only_fields, (list, tuple)):
+                raise TypeError(
+                    'The `read_only_fields` option must be a list or tuple. '
+                    'Got %s.' % type(read_only_fields).__name__
+                )
             for field_name in read_only_fields:
                 kwargs = extra_kwargs.get(field_name, {})
                 kwargs['read_only'] = True
@@ -1236,6 +1265,9 @@ class ModelSerializer(Serializer):
 
         ('dict of updated extra kwargs', 'mapping of hidden fields')
         """
+        if getattr(self.Meta, 'validators', None) is not None:
+            return (extra_kwargs, {})
+
         model = getattr(self.Meta, 'model')
         model_fields = self._get_model_fields(
             field_names, declared_fields, extra_kwargs
@@ -1286,7 +1318,7 @@ class ModelSerializer(Serializer):
                 else:
                     uniqueness_extra_kwargs[unique_constraint_name] = {'default': default}
             elif default is not empty:
-                # The corresponding field is not present in the,
+                # The corresponding field is not present in the
                 # serializer. We have a default to use for it, so
                 # add in a hidden field that populates it.
                 hidden_fields[unique_constraint_name] = HiddenField(default=default)
@@ -1294,9 +1326,8 @@ class ModelSerializer(Serializer):
         # Update `extra_kwargs` with any new options.
         for key, value in uniqueness_extra_kwargs.items():
             if key in extra_kwargs:
-                extra_kwargs[key].update(value)
-            else:
-                extra_kwargs[key] = value
+                value.update(extra_kwargs[key])
+            extra_kwargs[key] = value
 
         return extra_kwargs, hidden_fields
 
@@ -1354,7 +1385,7 @@ class ModelSerializer(Serializer):
 
     def get_unique_together_validators(self):
         """
-        Determine a default set of validators for any unique_together contraints.
+        Determine a default set of validators for any unique_together constraints.
         """
         model_class_inheritance_tree = (
             [self.Meta.model] +
@@ -1366,7 +1397,7 @@ class ModelSerializer(Serializer):
         # cannot map to a field, and must be a traversal, so we're not
         # including those.
         field_names = {
-            field.source for field in self.fields.values()
+            field.source for field in self._writable_fields
             if (field.source != '*') and ('.' not in field.source)
         }
 
@@ -1385,7 +1416,7 @@ class ModelSerializer(Serializer):
 
     def get_unique_for_date_validators(self):
         """
-        Determine a default set of validators for the following contraints:
+        Determine a default set of validators for the following constraints:
 
         * unique_for_date
         * unique_for_month

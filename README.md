@@ -11,8 +11,23 @@ Full documentation for the project is available at [http://www.django-rest-frame
 
 ---
 
-**Funding**: If you use REST framework commercially we strongly encourage you to
-invest in its continued development by [signing up for paid plan](https://fund.django-rest-framework.org/topics/funding/).
+# Funding
+
+REST framework is a *collaboratively funded project*. If you use
+REST framework commercially we strongly encourage you to invest in its
+continued development by **[signing up for a paid plan][funding]**.
+
+The initial aim is to provide a single full-time position on REST framework.
+*Every single sign-up makes a significant impact towards making that possible.*
+
+<p align="center">
+  <a href="http://jobs.rover.com/"><img src="https://raw.githubusercontent.com/tomchristie/django-rest-framework/master/docs/img/premium/rover-readme.png"/></a>
+  <a href="https://getsentry.com/welcome/"><img src="https://raw.githubusercontent.com/tomchristie/django-rest-framework/master/docs/img/premium/sentry-readme.png"/></a>
+  <a href="https://getstream.io/?utm_source=drf&utm_medium=banner&utm_campaign=drf"><img src="https://raw.githubusercontent.com/tomchristie/django-rest-framework/master/docs/img/premium/stream-readme.png"/></a>
+  <a href="http://www.machinalis.com/#services"><img src="https://raw.githubusercontent.com/tomchristie/django-rest-framework/master/docs/img/premium/machinalis-readme.png"/></a>
+</p>
+
+*Many thanks to all our [wonderful sponsors][sponsors], and in particular to our premium backers, [Rover](http://jobs.rover.com/), [Sentry](https://getsentry.com/welcome/), [Stream](https://getstream.io/?utm_source=drf&utm_medium=banner&utm_campaign=drf), and [Machinalis](http://www.machinalis.com/#services).*
 
 ---
 
@@ -37,7 +52,7 @@ There is a live example API for testing purposes, [available here][sandbox].
 # Requirements
 
 * Python (2.7, 3.2, 3.3, 3.4, 3.5)
-* Django (1.8, 1.9)
+* Django (1.8, 1.9, 1.10)
 
 # Installation
 
@@ -155,7 +170,7 @@ You may also want to [follow the author on Twitter][twitter].
 
 # Security
 
-If you believe you’ve found something in Django REST framework which has security implications, please **do not raise the issue in a public forum**.
+If you believe you've found something in Django REST framework which has security implications, please **do not raise the issue in a public forum**.
 
 Send a description of the issue via email to [rest-framework-security@googlegroups.com][security-mail].  The project maintainers will then work with you to resolve any issues where required, prior to any public disclosure.
 
@@ -168,6 +183,9 @@ Send a description of the issue via email to [rest-framework-security@googlegrou
 [twitter]: https://twitter.com/_tomchristie
 [group]: https://groups.google.com/forum/?fromgroups#!forum/django-rest-framework
 [sandbox]: http://restframework.herokuapp.com/
+
+[funding]: https://fund.django-rest-framework.org/topics/funding/
+[sponsors]: https://fund.django-rest-framework.org/topics/funding/#our-sponsors
 
 [oauth1-section]: http://www.django-rest-framework.org/api-guide/authentication/#django-rest-framework-oauth
 [oauth2-section]: http://www.django-rest-framework.org/api-guide/authentication/#django-oauth-toolkit

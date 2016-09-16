@@ -267,13 +267,12 @@ To submit new content, [open an issue][drf-create-issue] or [create a pull reque
 * [ViewSets and Routers - django-rest-framework part 3][viewsets-and-routers-django-rest-framework-part-3]
 * [Django Rest Framework User Endpoint][django-rest-framework-user-endpoint]
 * [Check credentials using Django Rest Framework][check-credentials-using-django-rest-framework]
+* [Django REST Framework course][django-rest-framework-course]
 
 ### Videos
 
 * [Ember and Django Part 1 (Video)][ember-and-django-part 1-video]
 * [Django Rest Framework Part 1 (Video)][django-rest-framework-part-1-video]
-* [Pyowa July 2013 - Django Rest Framework (Video)][pyowa-july-2013-django-rest-framework-video]
-* [django-rest-framework and angularjs (Video)][django-rest-framework-and-angularjs-video]
 
 ### Articles
 
@@ -334,7 +333,7 @@ To submit new content, [open an issue][drf-create-issue] or [create a pull reque
 [ember-django-adapter]: https://github.com/dustinfarris/ember-django-adapter
 [beginners-guide-to-the-django-rest-framework]: http://code.tutsplus.com/tutorials/beginners-guide-to-the-django-rest-framework--cms-19786
 [getting-started-with-django-rest-framework-and-angularjs]: http://blog.kevinastone.com/getting-started-with-django-rest-framework-and-angularjs.html
-[end-to-end-web-app-with-django-rest-framework-angularjs]: http://blog.mourafiq.com/post/55034504632/end-to-end-web-app-with-django-rest-framework
+[end-to-end-web-app-with-django-rest-framework-angularjs]: http://mourafiq.com/2013/07/01/end-to-end-web-app-with-django-angular-1.html
 [start-your-api-django-rest-framework-part-1]: https://godjango.com/41-start-your-api-django-rest-framework-part-1/
 [permissions-authentication-django-rest-framework-part-2]: https://godjango.com/43-permissions-authentication-django-rest-framework-part-2/
 [viewsets-and-routers-django-rest-framework-part-3]: https://godjango.com/45-viewsets-and-routers-django-rest-framework-part-3/
@@ -342,8 +341,6 @@ To submit new content, [open an issue][drf-create-issue] or [create a pull reque
 [check-credentials-using-django-rest-framework]: http://richardtier.com/2014/03/06/110/
 [ember-and-django-part 1-video]: http://www.neckbeardrepublic.com/screencasts/ember-and-django-part-1
 [django-rest-framework-part-1-video]: http://www.neckbeardrepublic.com/screencasts/django-rest-framework-part-1
-[pyowa-july-2013-django-rest-framework-video]: http://www.youtube.com/watch?v=e1zrehvxpbo
-[django-rest-framework-and-angularjs-video]: http://www.youtube.com/watch?v=q8frbgtj020
 [web-api-performance-profiling-django-rest-framework]: http://dabapps.com/blog/api-performance-profiling-django-rest-framework/
 [api-development-with-django-and-django-rest-framework]: https://bnotions.com/api-development-with-django-and-django-rest-framework/
 [django-rest-auth]: https://github.com/Tivix/django-rest-auth/
@@ -363,3 +360,4 @@ To submit new content, [open an issue][drf-create-issue] or [create a pull reque
 [django-rest-messaging-centrifugo]: https://github.com/raphaelgyory/django-rest-messaging-centrifugo
 [django-rest-messaging-js]: https://github.com/raphaelgyory/django-rest-messaging-js
 [medium-django-rest-framework]: https://medium.com/django-rest-framework
+[django-rest-framework-course]: https://teamtreehouse.com/library/django-rest-framework

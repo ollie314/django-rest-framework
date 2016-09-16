@@ -67,8 +67,8 @@ class TestPaginationIntegration:
 
     def test_setting_page_size_over_maximum(self):
         """
-        When page_size parameter exceeds maxiumum allowable,
-        then it should be capped to the maxiumum.
+        When page_size parameter exceeds maximum allowable,
+        then it should be capped to the maximum.
         """
         request = factory.get('/', {'page_size': 1000})
         response = self.view(request)
@@ -105,6 +105,17 @@ class TestPaginationIntegration:
             'results': [12, 14, 16, 18, 20],
             'previous': 'http://testserver/?filter=even',
             'next': 'http://testserver/?filter=even&page=3',
+            'count': 50
+        }
+
+    def test_empty_query_params_are_preserved(self):
+        request = factory.get('/', {'page': 2, 'filter': ''})
+        response = self.view(request)
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            'results': [12, 14, 16, 18, 20],
+            'previous': 'http://testserver/?filter=',
+            'next': 'http://testserver/?filter=&page=3',
             'count': 50
         }
 
@@ -259,7 +270,7 @@ class TestPageNumberPaginationOverride:
 
     def setup(self):
         class OverriddenDjangoPaginator(DjangoPaginator):
-            # override the count in our overriden Django Paginator
+            # override the count in our overridden Django Paginator
             # we will only return one page, with one item
             count = 1
 
@@ -486,6 +497,19 @@ class TestLimitOffset:
         assert queryset == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         assert content.get('next') == next_url
 
+    def test_zero_limit(self):
+        """
+        An zero limit query param should be ignored in favor of the default.
+        """
+        request = Request(factory.get('/', {'limit': 0, 'offset': 0}))
+        queryset = self.paginate_queryset(request)
+        content = self.get_paginated_content(queryset)
+        next_limit = self.pagination.default_limit
+        next_offset = self.pagination.default_limit
+        next_url = 'http://testserver/?limit={0}&offset={1}'.format(next_limit, next_offset)
+        assert queryset == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        assert content.get('next') == next_url
+
     def test_max_limit(self):
         """
         The limit defaults to the max_limit when there is a max_limit and the
@@ -504,31 +528,6 @@ class TestLimitOffset:
         assert queryset == list(range(51, 66))
         assert content.get('next') == next_url
         assert content.get('previous') == prev_url
-
-    def test_limit_zero(self):
-        """
-        A limit of 0 should return empty results.
-        """
-        request = Request(factory.get('/', {'limit': 0, 'offset': 10}))
-        queryset = self.paginate_queryset(request)
-        context = self.get_html_context()
-        content = self.get_paginated_content(queryset)
-
-        assert context == {
-            'previous_url': 'http://testserver/?limit=0&offset=10',
-            'page_links': [
-                PageLink(
-                    url='http://testserver/?limit=0',
-                    number=1,
-                    is_active=True,
-                    is_break=False
-                )
-            ],
-            'next_url': 'http://testserver/?limit=0&offset=10'
-        }
-
-        assert queryset == []
-        assert content.get('results') == []
 
 
 class TestCursorPagination:

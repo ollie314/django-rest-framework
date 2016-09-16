@@ -136,7 +136,7 @@ class TestModelSerializer(TestCase):
 class TestRegularFieldMappings(TestCase):
     def test_regular_fields(self):
         """
-        Model fields should map to their equivelent serializer fields.
+        Model fields should map to their equivalent serializer fields.
         """
         class TestSerializer(serializers.ModelSerializer):
             class Meta:
@@ -377,9 +377,9 @@ class TestGenericIPAddressFieldValidation(TestCase):
 
         s = TestSerializer(data={'address': 'not an ip address'})
         self.assertFalse(s.is_valid())
-        self.assertEquals(1, len(s.errors['address']),
-                          'Unexpected number of validation errors: '
-                          '{0}'.format(s.errors))
+        self.assertEqual(1, len(s.errors['address']),
+                         'Unexpected number of validation errors: '
+                         '{0}'.format(s.errors))
 
 
 # Tests for relational field mappings.
@@ -521,8 +521,6 @@ class TestRelationalFieldMappings(TestCase):
                 one_to_one = NestedSerializer(read_only=True):
                     url = HyperlinkedIdentityField(view_name='onetoonetargetmodel-detail')
                     name = CharField(max_length=100)
-                class Meta:
-                    validators = [<UniqueTogetherValidator(queryset=UniqueTogetherModel.objects.all(), fields=('foreign_key', 'one_to_one'))>]
         """)
         if six.PY2:
             # This case is also too awkward to resolve fully across both py2
@@ -616,7 +614,7 @@ class TestRelationalFieldDisplayValue(TestCase):
                 fields = '__all__'
 
         serializer = TestSerializer()
-        expected = OrderedDict([('1', 'Red Color'), ('2', 'Yellow Color'), ('3', 'Green Color')])
+        expected = OrderedDict([(1, 'Red Color'), (2, 'Yellow Color'), (3, 'Green Color')])
         self.assertEqual(serializer.fields['color'].choices, expected)
 
     def test_custom_display_value(self):
@@ -632,7 +630,7 @@ class TestRelationalFieldDisplayValue(TestCase):
                 fields = '__all__'
 
         serializer = TestSerializer()
-        expected = OrderedDict([('1', 'My Red Color'), ('2', 'My Yellow Color'), ('3', 'My Green Color')])
+        expected = OrderedDict([(1, 'My Red Color'), (2, 'My Yellow Color'), (3, 'My Green Color')])
         self.assertEqual(serializer.fields['color'].choices, expected)
 
 
@@ -957,3 +955,43 @@ class TestMetaInheritance(TestCase):
         self.assertEqual(unicode_repr(ChildSerializer()), child_expected)
         self.assertEqual(unicode_repr(TestSerializer()), test_expected)
         self.assertEqual(unicode_repr(ChildSerializer()), child_expected)
+
+
+class OneToOneTargetTestModel(models.Model):
+    text = models.CharField(max_length=100)
+
+
+class OneToOneSourceTestModel(models.Model):
+    target = models.OneToOneField(OneToOneTargetTestModel, primary_key=True)
+
+
+class TestModelFieldValues(TestCase):
+    def test_model_field(self):
+        class ExampleSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = OneToOneSourceTestModel
+                fields = ('target',)
+
+        target = OneToOneTargetTestModel(id=1, text='abc')
+        source = OneToOneSourceTestModel(target=target)
+        serializer = ExampleSerializer(source)
+        self.assertEqual(serializer.data, {'target': 1})
+
+
+class TestUniquenessOverride(TestCase):
+    def test_required_not_overwritten(self):
+        class TestModel(models.Model):
+            field_1 = models.IntegerField(null=True)
+            field_2 = models.IntegerField()
+
+            class Meta:
+                unique_together = (('field_1', 'field_2'),)
+
+        class TestSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = TestModel
+                extra_kwargs = {'field_1': {'required': False}}
+
+        fields = TestSerializer().fields
+        self.assertFalse(fields['field_1'].required)
+        self.assertTrue(fields['field_2'].required)

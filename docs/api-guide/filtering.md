@@ -96,7 +96,7 @@ The default filter backends may be set globally, using the `DEFAULT_FILTER_BACKE
     }
 
 You can also set the filter backends on a per-view, or per-viewset basis,
-using the `GenericAPIView` class based views.
+using the `GenericAPIView` class-based views.
 
     from django.contrib.auth.models import User
     from myapp.serializers import UserSerializer
@@ -178,8 +178,8 @@ For more advanced filtering requirements you can specify a `FilterSet` class tha
     from rest_framework import generics
 
     class ProductFilter(filters.FilterSet):
-        min_price = django_filters.NumberFilter(name="price", lookup_type='gte')
-        max_price = django_filters.NumberFilter(name="price", lookup_type='lte')
+        min_price = django_filters.NumberFilter(name="price", lookup_expr='gte')
+        max_price = django_filters.NumberFilter(name="price", lookup_expr='lte')
         class Meta:
             model = Product
             fields = ['category', 'in_stock', 'min_price', 'max_price']
@@ -241,7 +241,6 @@ For more details on using filter sets see the [django-filter documentation][djan
 * By default filtering is not enabled.  If you want to use `DjangoFilterBackend` remember to make sure it is installed by using the `'DEFAULT_FILTER_BACKENDS'` setting.
 * When using boolean fields, you should use the values `True` and `False` in the URL query parameters, rather than `0`, `1`, `true` or `false`.  (The allowed boolean values are currently hardwired in Django's [NullBooleanSelect implementation][nullbooleanselect].)
 * `django-filter` supports filtering across relationships, using Django's double-underscore syntax.
-* For Django 1.3 support, make sure to install `django-filter` version 0.5.4, as later versions drop support for 1.3.
 
 ---
 

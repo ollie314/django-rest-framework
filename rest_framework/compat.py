@@ -170,6 +170,16 @@ except ImportError:
     JSONField = None
 
 
+# coreapi is optional (Note that uritemplate is a dependency of coreapi)
+try:
+    import coreapi
+    import uritemplate
+except (ImportError, SyntaxError):
+    # SyntaxError is possible under python 3.2
+    coreapi = None
+    uritemplate = None
+
+
 # django-filter is optional
 try:
     import django_filters
@@ -182,16 +192,6 @@ try:
     import crispy_forms
 except ImportError:
     crispy_forms = None
-
-
-# coreapi is optional (Note that uritemplate is a dependency of coreapi)
-try:
-    import coreapi
-    import uritemplate
-except (ImportError, SyntaxError):
-    # SyntaxError is possible under python 3.2
-    coreapi = None
-    uritemplate = None
 
 
 # requests is optional
@@ -207,7 +207,6 @@ guardian = None
 try:
     if 'guardian' in settings.INSTALLED_APPS:
         import guardian
-        import guardian.shortcuts  # Fixes #1624
 except ImportError:
     pass
 
